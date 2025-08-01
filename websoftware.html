@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cooler Master MM712 Web Software</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
+    <style>
+        /* Custom styles for a better look and feel */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .label-text {
+            color: #a0aec0;
+        }
+        .color-input {
+            background-color: #2d3748;
+            border: 1px solid #4a5568;
+            border-radius: 0.375rem;
+            text-align: center;
+            width: 100%;
+            padding: 0.5rem;
+        }
+        .color-swatch {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            border: 2px solid #4a5568;
+            transition: transform 0.1s;
+        }
+        .color-swatch:hover {
+            transform: scale(1.1);
+        }
+        .custom-swatch {
+             background-image: linear-gradient(45deg, #4a5568 25%, transparent 25%), linear-gradient(-45deg, #4a5568 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #4a5568 75%), linear-gradient(-45deg, transparent 75%, #4a5568 75%);
+            background-size: 10px 10px;
+            background-position: 0 0, 0 5px, 5px -5px, -5px 0px;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-7xl bg-gray-800 shadow-2xl rounded-2xl p-8 md:p-10 grid grid-cols-1 lg:grid-cols-4 gap-8">
+        
+        <!-- Left Column: Color Controls -->
+        <div class="lg:col-span-1 space-y-4 flex flex-col">
+            <div class="bg-gray-700/50 p-5 rounded-xl">
+                <h2 class="text-lg font-semibold mb-4 text-gray-100">LED Color</h2>
+                <div class="flex items-center gap-4">
+                    <div class="color-picker-container"></div>
+                    <div class="flex-grow space-y-2">
+                        <div id="color-preview" class="w-full h-16 rounded-lg border-2 border-gray-600"></div>
+                        <div class="flex items-center gap-2">
+                            <label for="r-input" class="font-medium label-text">R</label>
+                            <input type="number" id="r-input" min="0" max="255" class="color-input">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label for="g-input" class="font-medium label-text">G</label>
+                            <input type="number" id="g-input" min="0" max="255" class="color-input">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label for="b-input" class="font-medium label-text">B</label>
+                            <input type="number" id="b-input" min="0" max="255" class="color-input">
+                        </div>
+                    </div>
+                </div>
+                 <div class="mt-4">
+                    <label class="font-medium label-text">Brightness</label>
+                    <div class="brightness-slider-container mt-2"></div>
+                </div>
+                <div class="mt-4">
+                    <h3 class="font-semibold text-sm label-text mb-2">Preset Colors</h3>
+                    <div id="preset-colors" class="flex gap-2 flex-wrap"></div>
+                </div>
+                <div class="mt-4">
+                    <h3 class="font-semibold text-sm label-text mb-2">Custom Colors</h3>
+                    <div id="custom-colors" class="flex gap-2 flex-wrap"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Column: Device Preview & Actions -->
+        <div class="lg:col-span-2 space-y-8 flex flex-col">
+            <div class="bg-gray-700/50 p-5 rounded-xl flex-grow flex items-center justify-center">
+                <canvas id="mouse-canvas" width="271" height="490"></canvas>
+            </div>
+             <div class="space-y-3">
+                 <button id="connect-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 text-sm rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                    <span>Connect Device</span>
+                </button>
+                <button id="apply-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 text-sm rounded-lg transition-colors duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed">Apply Lighting</button>
+            </div>
+            <div id="status-bar" class="text-center text-gray-400 bg-gray-700/50 py-2 px-4 rounded-lg">
+                Please connect your device.
+            </div>
+        </div>
+
+        <!-- Right Column: Modes & Settings -->
+        <div class="lg:col-span-1 space-y-8">
+            <div class="bg-gray-700/50 p-5 rounded-xl">
+                <h2 class="text-lg font-semibold mb-4 text-gray-100">LED Mode</h2>
+                <div id="mode-selection" class="space-y-3">
+                    <div><label class="flex items-center space-x-3"><input type="radio" name="mode" value="0" class="form-radio h-4 w-4 text-indigo-600 bg-gray-800 border-gray-600 focus:ring-indigo-500" checked><span>Static</span></label></div>
+                    <div><label class="flex items-center space-x-3"><input type="radio" name="mode" value="1" class="form-radio h-4 w-4 text-indigo-600 bg-gray-800 border-gray-600 focus:ring-indigo-500"><span>Breathing</span></label></div>
+                    <div><label class="flex items-center space-x-3"><input type="radio" name="mode" value="2" class="form-radio h-4 w-4 text-indigo-600 bg-gray-800 border-gray-600 focus:ring-indigo-500"><span>Color Cycle</span></label></div>
+                    <div><label class="flex items-center space-x-3"><input type="radio" name="mode" value="3" class="form-radio h-4 w-4 text-indigo-600 bg-gray-800 border-gray-600 focus:ring-indigo-500"><span>Off</span></label></div>
+                </div>
+            </div>
+            <div class="bg-gray-700/50 p-5 rounded-xl">
+                <h2 class="text-lg font-semibold mb-4 text-gray-100">Settings</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="speed-slider" class="font-medium label-text">Speed</label>
+                        <input type="range" id="speed-slider" min="0" max="100" disabled class="mt-2">
+                    </div>
+                    <div>
+                        <label for="brightness-slider" class="font-medium label-text">Brightness</label>
+                        <input type="range" id="brightness-slider" min="0" max="100" disabled class="mt-2">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- CONFIGURATION ---
+            const VENDOR_ID = 0x2516;
+            const WIRED_PID = 0x0169;
+            const MOUSE_BASE_IMAGE_URL = 'https://raw.githubusercontent.com/FlicksDaModdle/images/main/MM712_Base.png'; 
+            const MOUSE_MASK_IMAGE_URL = 'https://raw.githubusercontent.com/FlicksDaModdle/images/main/MM712_LED_MASK.png';
+
+            // --- STATE ---
+            let selectedDevice = null;
+            let baseImage = null;
+            let maskImage = null;
+            let imagesLoaded = 0;
+
+            // --- DOM ELEMENTS ---
+            const rInput = document.getElementById('r-input');
+            const gInput = document.getElementById('g-input');
+            const bInput = document.getElementById('b-input');
+            const colorPreview = document.getElementById('color-preview');
+            const connectButton = document.getElementById('connect-button');
+            const applyButton = document.getElementById('apply-button');
+            const statusBar = document.getElementById('status-bar');
+            const modeSelection = document.getElementById('mode-selection');
+            const presetColorsContainer = document.getElementById('preset-colors');
+            const customColorsContainer = document.getElementById('custom-colors');
+            
+            // --- CANVAS SETUP ---
+            const canvas = document.getElementById('mouse-canvas');
+            const ctx = canvas.getContext('2d');
+
+            // --- IRO.JS COLOR PICKER ---
+            const colorPicker = new iro.ColorPicker('.color-picker-container', {
+                width: 140,
+                color: "#ff00ff",
+                borderWidth: 2,
+                borderColor: "#4a5568",
+                layout: [ { component: iro.ui.Wheel } ]
+            });
+            const brightnessSlider = new iro.ColorPicker('.brightness-slider-container', {
+                width: 250,
+                color: "#ff00ff",
+                layout: [{ component: iro.ui.Slider, options: { sliderType: 'value' } }]
+            });
+            
+            const onImageLoad = () => {
+                imagesLoaded++;
+                if (imagesLoaded === 2) updateCanvas();
+            };
+            
+            baseImage = new Image();
+            baseImage.crossOrigin = "Anonymous";
+            baseImage.onload = onImageLoad;
+            baseImage.onerror = () => { statusBar.textContent = "Error: Could not load base mouse image."; }
+            baseImage.src = MOUSE_BASE_IMAGE_URL;
+
+            maskImage = new Image();
+            maskImage.crossOrigin = "Anonymous";
+            maskImage.onload = onImageLoad;
+            maskImage.onerror = () => { statusBar.textContent = "Error: Could not load mouse mask image."; }
+            maskImage.src = MOUSE_MASK_IMAGE_URL;
+
+            // --- FUNCTIONS ---
+
+            const updateUIFromColor = (color) => {
+                const { r, g, b } = color.rgb;
+                rInput.value = r;
+                gInput.value = g;
+                bInput.value = b;
+                colorPreview.style.backgroundColor = color.hexString;
+                brightnessSlider.color.set(color);
+                updateCanvas();
+            };
+
+            const updateCanvas = () => {
+                if (imagesLoaded < 2) return;
+                const rgb = colorPicker.color.rgb;
+                if (!rgb) return;
+
+                const offscreenCanvas = document.createElement('canvas');
+                const offscreenCtx = offscreenCanvas.getContext('2d');
+                offscreenCanvas.width = canvas.width;
+                offscreenCanvas.height = canvas.height;
+                offscreenCtx.drawImage(maskImage, 0, 0, canvas.width, canvas.height);
+                
+                const imageData = offscreenCtx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    if (data[i+1] > 150) { // If pixel in mask is green
+                        data[i] = rgb.r; data[i+1] = rgb.g; data[i+2] = rgb.b; data[i+3] = 255;
+                    } else {
+                        data[i+3] = 0;
+                    }
+                }
+                offscreenCtx.putImageData(imageData, 0, 0);
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
+                ctx.drawImage(offscreenCanvas, 0, 0, canvas.width, canvas.height);
+            };
+
+            const toggleColorControls = () => {
+                const selectedMode = document.querySelector('input[name="mode"]:checked').value;
+                const isColorMode = selectedMode === '0' || selectedMode === '1';
+                [rInput, gInput, bInput].forEach(el => { el.disabled = !isColorMode; });
+                
+                if (!isColorMode) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    if (baseImage) ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
+                } else {
+                    updateCanvas();
+                }
+            };
+
+            const connectDevice = async () => {
+                if (!navigator.hid) {
+                    statusBar.textContent = "WebHID not supported in this browser.";
+                    return;
+                }
+                try {
+                    const devices = await navigator.hid.requestDevice({ filters: [{ vendorId: VENDOR_ID, productId: WIRED_PID }] });
+                    if (!devices.length) {
+                        statusBar.textContent = "No device selected.";
+                        return;
+                    }
+                    selectedDevice = devices[0];
+                    statusBar.textContent = `Device selected: ${selectedDevice.productName}. Ready to apply changes.`;
+                    connectButton.textContent = "Device Selected";
+                    connectButton.disabled = true;
+                    applyButton.disabled = false;
+                } catch (error) {
+                    statusBar.textContent = `Error: ${error.message}`;
+                    console.error("HID selection error:", error);
+                }
+            };
+
+            const applyLighting = async () => {
+                if (!selectedDevice) { 
+                    statusBar.textContent = "No device selected. Please connect first."; 
+                    return; 
+                }
+
+                // Open the device right before sending, and close it right after.
+                try {
+                    // Check if device is already open, if so, do nothing. If not, open it.
+                    if (!selectedDevice.opened) {
+                        await selectedDevice.open();
+                    }
+                    
+                    statusBar.textContent = "Sending commands...";
+
+                    const mode = parseInt(document.querySelector('input[name="mode"]:checked').value);
+                    const { r, g, b } = colorPicker.color.rgb;
+                    
+                    const payload1 = [0x4C, 0x81, 0x04, mode, 0xFF, 0xB2, 0x02, r, g, b, 0xFF, 0x00];
+                    const payload2 = [0x4C, 0x81, 0x08, mode];
+                    const pad = (arr) => new Uint8Array(arr.concat(new Array(64 - arr.length).fill(0)));
+
+                    // Prepend Report ID 0x00, as per python script logic `[0x00] + padded_payload`
+                    await selectedDevice.sendReport(0x00, pad(payload1));
+                    await new Promise(resolve => setTimeout(resolve, 50)); // 50ms delay
+                    await selectedDevice.sendReport(0x00, pad(payload2));
+                    
+                    statusBar.textContent = "Lighting applied successfully!";
+
+                } catch (error) {
+                    statusBar.textContent = `Error sending data: ${error.message}. Please try connecting again.`;
+                    console.error("HID send error:", error);
+                    // Reset state to allow user to reconnect
+                    selectedDevice = null;
+                    connectButton.textContent = "Connect Device";
+                    connectButton.disabled = false;
+                    applyButton.disabled = true;
+                } finally {
+                    if (selectedDevice && selectedDevice.opened) {
+                        await selectedDevice.close();
+                    }
+                }
+            };
+
+            // --- EVENT LISTENERS ---
+            colorPicker.on('color:change', updateUIFromColor);
+            brightnessSlider.on('color:change', (color) => colorPicker.color.set(color));
+            [rInput, gInput, bInput].forEach(input => {
+                input.addEventListener('change', () => {
+                    colorPicker.color.rgb = { r: rInput.value, g: gInput.value, b: bInput.value };
+                });
+            });
+            modeSelection.addEventListener('change', toggleColorControls);
+            connectButton.addEventListener('click', connectDevice);
+            applyButton.addEventListener('click', applyLighting);
+
+            // --- INITIALIZATION ---
+            const presets = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffffff'];
+            presets.forEach(color => {
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch';
+                swatch.style.backgroundColor = color;
+                swatch.addEventListener('click', () => colorPicker.color.set(color));
+                presetColorsContainer.appendChild(swatch);
+            });
+            for(let i=0; i < 6; i++) {
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch custom-swatch';
+                swatch.addEventListener('click', () => {
+                    if (swatch.dataset.color) colorPicker.color.set(swatch.dataset.color);
+                });
+                swatch.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    swatch.style.backgroundColor = colorPicker.color.hexString;
+                    swatch.dataset.color = colorPicker.color.hexString;
+                });
+                customColorsContainer.appendChild(swatch);
+            }
+
+            updateUIFromColor(colorPicker.color);
+            toggleColorControls();
+            applyButton.disabled = true;
+        });
+    </script>
+</body>
+</html>
